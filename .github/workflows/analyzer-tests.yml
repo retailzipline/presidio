@@ -1,0 +1,39 @@
+name: "Analyzer Tests"
+
+on:
+  push:
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ main ]
+    
+permissions: read-all
+
+jobs:
+  analyzer-tests:
+    name: Analyzer Tests
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Run Analyzer Tests
+      working-directory: presidio-analyzer
+      run: |
+        python -m pip install --upgrade pip
+        pip install pipenv
+        pipenv install --dev
+        pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
+        pipenv run pytest -v
