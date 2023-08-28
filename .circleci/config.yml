@@ -144,7 +144,7 @@ jobs:
           docker_layer_caching: true
       - build_image
       - run: docker run -d -e PORT=5001 -p 5001:5001 -v << pipeline.parameters.e2e_tests_directory >>:/e2e-tests --name analyzer_container << pipeline.parameters.container_name >>
-      - run: docker exec analyzer_container bash -c "pip install -r /e2e-tests/requirements.txt -qq; pytest -v /e2e-tests"
+      - run: docker exec analyzer_container bash -c "pip install -r /e2e-tests/requirements.txt; pytest -v /e2e-tests"
 
 workflows:
   version: 2
