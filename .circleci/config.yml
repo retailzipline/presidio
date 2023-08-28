@@ -38,6 +38,9 @@ commands:
     description: Setup - Install Presidio Python Dependencies
     steps:
       - run:
+          name: Change to Container Directory 
+          command: cd << pipeline.parameters.container_directory >>
+      - run:
           name: Upgrade Pip
           command: python -m pip install --upgrade pip
       - run:
@@ -50,16 +53,8 @@ commands:
           name: Setup Virtual Environment
           command: PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
       - run:
-          name: pwd
-          command: pwd
-      - run:
-          name: ls
-          command: ls -lah
-      - run:
           name: Install NLP Models
-          command: |
-            cd ./presidio-analyzer
-            pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
+          command: pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
 
 executors:
   python_executor:
