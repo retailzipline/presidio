@@ -8,11 +8,11 @@ parameters:
   container_directory:
     type: string
     default: /home/circleci/presidio/presidio-analyzer
-  
+
   e2e_tests_directory:
     type: string
     default: /home/circleci/presidio/e2e-tests
-    
+
   container_name:
     type: string
     default: presidio-analyzer:latest
@@ -24,11 +24,11 @@ parameters:
   image_cache_key:
     type: string
     default: presidio-analyzer-image-{{ .Environment.CACHE_VERSION }}
-  
+
   dependencies_cache_path:
     type: string
     default: /home/circleci/presidio/presidio-analyzer/.venv
-  
+
   dependencies_cache_key:
     type: string
     default: presidio-analyzer-deps-{{ .Environment.CACHE_VERSION }}
@@ -52,13 +52,13 @@ commands:
       - run:
           name: Install NLP Models
           command: pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
-  
+
   setup_workspace:
     description: Attach Workspace
     steps:
       - attach_workspace:
           at: << pipeline.parameters.working_directory >>
-  
+
   build_image:
     description: Build Docker Image
     steps:
@@ -93,7 +93,7 @@ executors:
     docker:
       - image: cimg/python:3.11.5
     working_directory: << parameters.workdir >>
-    
+
   docker_executor:
     parameters:
       workdir:
@@ -143,8 +143,8 @@ jobs:
           version: 20.10.14
           docker_layer_caching: true
       - build_image
-      - run: docker run -d -e PORT=5001 -p 5001:5001 << pipeline.parameters.container_name >>
-      - run: pytest -v << pipeline.parameters.e2e_tests_directory >>
+      - run: docker run -d -e PORT=5001 -p 5001:5001 -v << pipeline.parameters.e2e_tests_directory >>:/e2e-tests --name analyzer_container << pipeline.parameters.container_name >>
+      - run: docker exec analyzer_container bash -c "pip install -r /e2e-tests/requirements.txt -qq; pytest -v /e2e-tests"
 
 workflows:
   version: 2
@@ -152,12 +152,12 @@ workflows:
     jobs:
       - setup_environment
       - unit_tests:
-         requires:
-           - setup_environment
+          requires:
+            - setup_environment
       - e2e_tests:
-         requires:
-           - setup_environment
-#      - upload_coverage:
-#          requires:
-#            - unit_tests
-#            - system_tests
+          requires:
+            - setup_environment
+            #      - upload_coverage:
+            #          requires:
+            #            - unit_tests
+            #            - system_tests
