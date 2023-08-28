@@ -150,9 +150,9 @@ workflows:
   presidio_analyzer:
     jobs:
       - setup_environment
-      # - build_image:
-      #     requires:
-      #       - setup_environment
+      - build_image:
+          requires:
+            - setup_environment
       - unit_tests:
          requires:
            - setup_environment
