@@ -7,7 +7,7 @@ parameters:
 
   container_directory:
     type: string
-    default: /home/circleci/presidio/presidio_analyzer
+    default: /home/circleci/presidio/presidio-analyzer
   
   e2e_tests_directory:
     type: string
@@ -27,7 +27,7 @@ parameters:
   
   dependencies_cache_path:
     type: string
-    default: /home/circleci/presidio/presidio_analyzer/.venv
+    default: /home/circleci/presidio/presidio-analyzer/.venv
   
   dependencies_cache_key:
     type: string
