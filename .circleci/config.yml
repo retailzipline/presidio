@@ -57,22 +57,32 @@ commands:
           command: ls -lah
       - run:
           name: Install NLP Models
-          command: pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
+          command: |
+            cd ./presidio-analyzer
+            pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
 
 executors:
   python_executor:
+    parameters:
+      workdir:
+        type: string
     docker:
       - image: cimg/python:3.11.5
-    working_directory: << pipeline.parameters.container_directory >>
+    working_directory: << parameters.workdir >>
     
   docker_executor:
+    parameters:
+      workdir:
+        type: string
     docker:
       - image: docker:24-git
-    working_directory: << pipeline.parameters.container_directory >>
+    working_directory: << parameters.workdir >>
 
 jobs:
   setup_environment:
-    executor: python_executor
+    executor:
+      name: python_executor
+      workdir: << pipeline.parameters.working_directory >>
     steps:
       - checkout
       - restore_cache:
@@ -90,7 +100,9 @@ jobs:
           paths:
             - .
   build_image:
-    executor: docker_executor
+    executor:
+      name: docker_executor
+      workdir: << pipeline.parameters.container_directory >>
     steps:
       - setup_remote_docker:
           version: 20.10.14
@@ -98,8 +110,6 @@ jobs:
       - restore_cache:
           name: Load Docker Image Cache
           key: << pipeline.parameters.image_cache_key >>
-          paths:
-            - << pipeline.parameters.image_cache_path >>
       - run:
           name: Load Docker Image Layer cache
           command: |
@@ -121,12 +131,16 @@ jobs:
             - << pipeline.parameters.image_cache_path >>
 
   unit_tests:
-    executor: python_executor
+    executor:
+      name: python_executor
+      workdir: << pipeline.parameters.container_directory >>
     steps:
       - run: pipenv run pytest -v
 
   e2e_tests:
-    executor: docker_executor
+    executor:
+      name: docker_executor
+      workdir: << pipeline.parameters.working_directory >>
     steps:
       - run: pytest -v << pipeline.parameters.e2e_tests_directory >>
 
