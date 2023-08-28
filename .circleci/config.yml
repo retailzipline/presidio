@@ -143,7 +143,7 @@ jobs:
           version: 20.10.14
           docker_layer_caching: true
       - build_image
-      - run: docker run -e PORT=5001 -p 5001:5001 << pipeline.parameters.container_name >>
+      - run: cd << pipeline.parameters.container_directory >> && docker run -e PORT=5001 -p 5001:5001 << pipeline.parameters.container_name >>
       - run: pytest -v << pipeline.parameters.e2e_tests_directory >>
 
 workflows:
