@@ -149,7 +149,7 @@ jobs:
           background: true
       - run:
           name: Wait for Service to be started
-          command: dockerize -wait http://localhost:5001 -timeout 1m
+          command: dockerize -wait http://localhost:5001/health -timeout 1m
       - run:
           name: Run E2E Tests
           command: pipenv run pytest -v << pipeline.parameters.e2e_tests_directory >>
