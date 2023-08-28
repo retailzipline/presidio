@@ -44,9 +44,6 @@ commands:
           name: Install Pipenv
           command: pip install pipenv
       - run:
-          name: Install Pytest
-          command: pip install pytest
-      - run:
           name: Setup Virtual Environment
           command: PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
       - run:
@@ -84,16 +81,16 @@ jobs:
     steps:
       - checkout:
           path: << pipeline.parameters.working_directory >>
-      # - restore_cache:
-      #     name: Load Dependencies Cache
-      #     keys:
-      #       - << pipeline.parameters.dependencies_cache_key >>
+      - restore_cache:
+          name: Load Dependencies Cache
+          keys:
+            - << pipeline.parameters.dependencies_cache_key >>
       - install_presidio_dependencies
-      # - save_cache:
-      #     name: Save Dependencies Cache
-      #     key: << pipeline.parameters.dependencies_cache_key >>
-      #     paths:
-      #       - << pipeline.parameters.dependencies_cache_path >>
+      - save_cache:
+          name: Save Dependencies Cache
+          key: << pipeline.parameters.dependencies_cache_key >>
+          paths:
+            - << pipeline.parameters.dependencies_cache_path >>
       - persist_to_workspace:
           root: << pipeline.parameters.working_directory >>
           paths:
@@ -106,6 +103,9 @@ jobs:
     steps:
       - checkout:
           path: << pipeline.parameters.working_directory >>
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
       # - restore_cache:
       #     name: Load Docker Image Cache
       #     key: << pipeline.parameters.image_cache_key >>
@@ -144,7 +144,7 @@ jobs:
     steps:
       - setup_workspace
       - run: PORT=5001 nohup pipenv run python << pipeline.parameters.container_directory >>/app.py --host 0.0.0.0 &
-      - run: pytest -v << pipeline.parameters.e2e_tests_directory >>
+      - run: pipenv run pytest -v << pipeline.parameters.e2e_tests_directory >>
       # - setup_remote_docker:
       #     version: 20.10.14
       #     docker_layer_caching: true
