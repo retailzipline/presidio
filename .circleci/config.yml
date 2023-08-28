@@ -48,7 +48,13 @@ commands:
           command: pip install pytest
       - run:
           name: Setup Virtual Environment
-          command: pipenv install --dev
+          command: PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
+      - run:
+          name: pwd
+          command: pwd
+      - run:
+          name: ls
+          command: ls -lah
       - run:
           name: Install NLP Models
           command: pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
