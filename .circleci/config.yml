@@ -38,9 +38,6 @@ commands:
     description: Setup - Install Presidio Python Dependencies
     steps:
       - run:
-          name: Change to Container Directory 
-          command: cd << pipeline.parameters.container_directory >>
-      - run:
           name: Upgrade Pip
           command: python -m pip install --upgrade pip
       - run:
@@ -77,9 +74,10 @@ jobs:
   setup_environment:
     executor:
       name: python_executor
-      workdir: << pipeline.parameters.working_directory >>
+      workdir: << pipeline.parameters.container_directory >>
     steps:
-      - checkout
+      - checkout:
+          path: << pipeline.parameters.working_directory >>
       - restore_cache:
           name: Load Dependencies Cache
           keys:
