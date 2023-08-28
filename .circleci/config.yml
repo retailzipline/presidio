@@ -1,0 +1,144 @@
+version: 2.1
+
+parameters:
+  working_directory:
+    type: string
+    default: /home/circleci/presidio
+
+  container_directory:
+    type: string
+    default: /home/circleci/presidio/presidio_analyzer
+  
+  e2e_tests_directory:
+    type: string
+    default: /home/circleci/presidio/e2e-tests
+    
+  container_name:
+    type: string
+    default: presidio-analyzer
+
+  image_cache_path:
+    type: string
+    default: /home/circleci/presidio/tmp/cache/image.tar
+
+  image_cache_key:
+    type: string
+    default: presidio-analyzer-image-{{ .Environment.CACHE_VERSION }}
+  
+  dependencies_cache_path:
+    type: string
+    default: /home/circleci/presidio/presidio_analyzer/.venv
+  
+  dependencies_cache_key:
+    type: string
+    default: presidio-analyzer-deps-{{ .Environment.CACHE_VERSION }}
+
+commands:
+  install_presidio_dependencies:
+    description: Setup - Install Presidio Python Dependencies
+    steps:
+      - run:
+          name: Upgrade Pip
+          command: python -m pip install --upgrade pip
+      - run:
+          name: Install Pipenv
+          command: pip install pipenv
+      - run:
+          name: Install Pytest
+          command: pip install pytest
+      - run:
+          name: Setup Virtual Environment
+          command: pipenv install --dev
+      - run:
+          name: Install NLP Models
+          command: pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
+
+executors:
+  python_executor:
+    docker:
+      - image: cimg/python:3.11.5
+    working_directory: << pipeline.parameters.container_directory >>
+    
+  docker_executor:
+    docker:
+      - image: docker:24-git
+    working_directory: << pipeline.parameters.container_directory >>
+
+jobs:
+  setup_environment:
+    executor: python_executor
+    steps:
+      - checkout
+      - restore_cache:
+          name: Load Dependencies Cache
+          keys:
+            - << pipeline.parameters.dependencies_cache_key >>
+      - install_presidio_dependencies
+      - save_cache:
+          name: Save Dependencies Cache
+          key: << pipeline.parameters.dependencies_cache_key >>
+          paths:
+            - << pipeline.parameters.dependencies_cache_path >>
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+  build_image:
+    executor: docker_executor
+    steps:
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
+      - restore_cache:
+          name: Load Docker Image Cache
+          key: << pipeline.parameters.image_cache_key >>
+          paths:
+            - << pipeline.parameters.image_cache_path >>
+      - run:
+          name: Load Docker Image Layer cache
+          command: |
+            set +o pipefail
+            docker load -i << pipeline.parameters.image_cache_path >> | true
+      - run:
+          name: Build application Docker image
+          command: |
+            docker build --cache-from=<< pipeline.parameters.container_name >> -t << pipeline.parameters.container_name >> .
+      - run:
+          name: Save Docker image layer cache
+          command: |
+            mkdir -p $(dirname << pipeline.parameters.image_cache_path >>)
+            docker save -o << pipeline.parameters.image_cache_path >> << pipeline.parameters.container_name >>
+      - save_cache:
+          name: Save Docker Image Cache
+          key: << pipeline.parameters.image_cache_key >>
+          paths:
+            - << pipeline.parameters.image_cache_path >>
+
+  unit_tests:
+    executor: python_executor
+    steps:
+      - run: pipenv run pytest -v
+
+  e2e_tests:
+    executor: docker_executor
+    steps:
+      - run: pytest -v << pipeline.parameters.e2e_tests_directory >>
+
+workflows:
+  version: 2
+  presidio_analyzer:
+    jobs:
+      - setup_environment
+      - build_image:
+          requires:
+            - setup_environment
+      - unit_tests:
+         requires:
+           - setup_environment
+      - e2e_tests:
+         requires:
+           - build_image
+#      - upload_coverage:
+#          requires:
+#            - unit_tests
+#            - system_tests
