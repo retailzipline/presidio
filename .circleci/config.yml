@@ -97,7 +97,7 @@ jobs:
       - persist_to_workspace:
           root: << pipeline.parameters.working_directory >>
           paths:
-            - << pipeline.parameters.working_directory >>
+            - .
   build_image:
     executor:
       name: docker_executor
