@@ -59,32 +59,6 @@ commands:
       - attach_workspace:
           at: << pipeline.parameters.working_directory >>
 
-  build_image:
-    description: Build Docker Image
-    steps:
-      - restore_cache:
-          name: Load Docker Image Cache
-          key: << pipeline.parameters.image_cache_key >>
-      - run:
-          name: Load Docker Image Layer cache
-          command: |
-            set +o pipefail
-            docker load -i << pipeline.parameters.image_cache_path >> | true
-      - run:
-          name: Build application Docker image
-          command: |
-            cd << pipeline.parameters.container_directory >> && docker build --cache-from=<< pipeline.parameters.container_name >> -t << pipeline.parameters.container_name >> << pipeline.parameters.container_directory >>
-      - run:
-          name: Save Docker Image Layers to File
-          command: |
-            mkdir -p $(dirname << pipeline.parameters.image_cache_path >>)
-            docker save -o << pipeline.parameters.image_cache_path >> << pipeline.parameters.container_name >>
-      - save_cache:
-          name: Save Docker Image Cache
-          key: << pipeline.parameters.image_cache_key >>
-          paths:
-            - << pipeline.parameters.image_cache_path >>
-
 executors:
   python_executor:
     parameters:
@@ -110,20 +84,50 @@ jobs:
     steps:
       - checkout:
           path: << pipeline.parameters.working_directory >>
-      - restore_cache:
-          name: Load Dependencies Cache
-          keys:
-            - << pipeline.parameters.dependencies_cache_key >>
+      # - restore_cache:
+      #     name: Load Dependencies Cache
+      #     keys:
+      #       - << pipeline.parameters.dependencies_cache_key >>
       - install_presidio_dependencies
-      - save_cache:
-          name: Save Dependencies Cache
-          key: << pipeline.parameters.dependencies_cache_key >>
-          paths:
-            - << pipeline.parameters.dependencies_cache_path >>
+      # - save_cache:
+      #     name: Save Dependencies Cache
+      #     key: << pipeline.parameters.dependencies_cache_key >>
+      #     paths:
+      #       - << pipeline.parameters.dependencies_cache_path >>
       - persist_to_workspace:
           root: << pipeline.parameters.working_directory >>
           paths:
             - .
+  
+  build_image:
+    executor:
+      name: docker_executor
+      workdir: << pipeline.parameters.container_directory >>
+    steps:
+      - checkout:
+          path: << pipeline.parameters.working_directory >>
+      # - restore_cache:
+      #     name: Load Docker Image Cache
+      #     key: << pipeline.parameters.image_cache_key >>
+      - run:
+          name: Load Docker Image Layer cache
+          command: |
+            set +o pipefail
+            docker load -i << pipeline.parameters.image_cache_path >> | true
+      - run:
+          name: Build application Docker image
+          command: |
+            cd << pipeline.parameters.container_directory >> && docker build --cache-from=<< pipeline.parameters.container_name >> -t << pipeline.parameters.container_name >> << pipeline.parameters.container_directory >>
+      - run:
+          name: Save Docker Image Layers to File
+          command: |
+            mkdir -p $(dirname << pipeline.parameters.image_cache_path >>)
+            docker save -o << pipeline.parameters.image_cache_path >> << pipeline.parameters.container_name >>
+      # - save_cache:
+      #     name: Save Docker Image Cache
+      #     key: << pipeline.parameters.image_cache_key >>
+      #     paths:
+      #       - << pipeline.parameters.image_cache_path >>
 
   unit_tests:
     executor:
@@ -135,22 +139,25 @@ jobs:
 
   e2e_tests:
     executor:
-      name: docker_executor
-      workdir: << pipeline.parameters.working_directory >>
+      name: python_executor
+      workdir: << pipeline.parameters.container_directory >>
     steps:
       - setup_workspace
-      - setup_remote_docker:
-          version: 20.10.14
-          docker_layer_caching: true
-      - build_image
-      - run: docker run -d -e PORT=5001 -p 5001:5001 -v << pipeline.parameters.e2e_tests_directory >>:/e2e-tests --name analyzer_container << pipeline.parameters.container_name >>
-      - run: docker exec analyzer_container bash -c "pip install -r /e2e-tests/requirements.txt; pytest -v /e2e-tests"
+      - run: PORT=5001 nohup pipenv run python << pipeline.parameters.container_directory >>/app.py --host 0.0.0.0 &
+      - run: pytest -v << pipeline.parameters.e2e_tests_directory >>
+      # - setup_remote_docker:
+      #     version: 20.10.14
+      #     docker_layer_caching: true
+      # - build_image
+      # - run: docker run -d -e PORT=5001 -p 5001:5001 -v << pipeline.parameters.e2e_tests_directory >>:/e2e-tests --name analyzer_container << pipeline.parameters.container_name >>
+      # - run: docker exec analyzer_container bash -c "pip install -r /e2e-tests/requirements.txt; pytest -v /e2e-tests"
 
 workflows:
   version: 2
   presidio_analyzer:
     jobs:
       - setup_environment
+      - build_image
       - unit_tests:
           requires:
             - setup_environment
