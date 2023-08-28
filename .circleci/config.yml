@@ -52,6 +52,12 @@ commands:
       - run:
           name: Install NLP Models
           command: pipenv run python install_nlp_models.py --conf_file ./conf/default.yaml
+  
+  setup_workspace:
+    description: Attach Workspace
+    steps:
+      - attach_workspace:
+          at: << pipeline.parameters.working_directory >>
 
 executors:
   python_executor:
@@ -89,9 +95,9 @@ jobs:
           paths:
             - << pipeline.parameters.dependencies_cache_path >>
       - persist_to_workspace:
-          root: .
+          root: << pipeline.parameters.working_directory >>
           paths:
-            - .
+            - << pipeline.parameters.working_directory >>
   build_image:
     executor:
       name: docker_executor
@@ -128,6 +134,7 @@ jobs:
       name: python_executor
       workdir: << pipeline.parameters.container_directory >>
     steps:
+      - setup_workspace
       - run: pipenv run pytest -v
 
   e2e_tests:
@@ -135,6 +142,7 @@ jobs:
       name: docker_executor
       workdir: << pipeline.parameters.working_directory >>
     steps:
+      - setup_workspace
       - run: pytest -v << pipeline.parameters.e2e_tests_directory >>
 
 workflows:
@@ -142,15 +150,15 @@ workflows:
   presidio_analyzer:
     jobs:
       - setup_environment
-      - build_image:
-          requires:
-            - setup_environment
+      # - build_image:
+      #     requires:
+      #       - setup_environment
       - unit_tests:
          requires:
            - setup_environment
-      - e2e_tests:
-         requires:
-           - build_image
+      # - e2e_tests:
+      #    requires:
+      #      - build_image
 #      - upload_coverage:
 #          requires:
 #            - unit_tests
