@@ -58,9 +58,9 @@ def test_given_no_analyze_text_input_then_return_error():
     response_status, response_content = analyze(request_body)
 
     expected_response = """
-        {"error": "No text provided"}
+        {"detail":[{"loc":["body","text"],"msg":"field required","type":"value_error.missing"},{"loc":["body","language"],"msg":"field required","type":"value_error.missing"}]}
     """
-    assert response_status == 500
+    assert response_status == 422
     assert equal_json_strings(expected_response, response_content)
 
 
@@ -73,9 +73,9 @@ def test_given_no_analyze_language_input_then_return_error():
     response_status, response_content = analyze(request_body)
 
     expected_response = """ 
-        {"error": "No text provided"}
+        {"detail":[{"loc":["body","text"],"msg":"field required","type":"value_error.missing"}]}
     """
-    assert response_status == 500
+    assert response_status == 422
     assert equal_json_strings(expected_response, response_content)
 
 
@@ -90,9 +90,9 @@ def test_given_analyze_text_no_language_input_then_return_error():
     response_status, response_content = analyze(request_body)
 
     expected_response = """ 
-        {"error": "No language provided"} 
+        {"detail":[{"loc":["body","language"],"msg":"field required","type":"value_error.missing"}]}
     """
-    assert response_status == 500
+    assert response_status == 422
     assert equal_json_strings(expected_response, response_content)
 
 
@@ -108,7 +108,7 @@ def test_given_a_incorrect_analyze_language_input_then_return_error():
 
     assert response_status == 500
     expected_response = """ 
-         {"error": "No matching recognizers were found to serve the request."}
+         {"detail": "No matching recognizers were found to serve the request."}
     """
     assert equal_json_strings(expected_response, response_content)
 
@@ -312,7 +312,7 @@ def test_given_a_unsupported_language_for_supported_entities_then_expect_an_erro
     )
 
     expected_response = """
-       {"error": "No matching recognizers were found to serve the request."}
+       {"detail": "No matching recognizers were found to serve the request."}
     """
     assert response_status == 500
     assert equal_json_strings(expected_response, response_content)
@@ -399,13 +399,12 @@ def test_given_wrong_ad_hoc_json_exception_is_given():
 
     expected_response = """
     {
-        "error":"Failed to parse /analyze request for AnalyzerEngine.analyze(). __init__() got an unexpected keyword argument \'type\'"
+        "detail":[{"loc":["body","ad_hoc_recognizers"],"msg":"__init__() got an unexpected keyword argument \'type\'","type":"type_error"}]
     }
     """
 
-    # TODO: Fix this flaky test!
-    # assert equal_json_strings(expected_response, response_content)
-    assert response_status == 400
+    assert equal_json_strings(expected_response, response_content)
+    assert response_status == 422
 
 
 def test_given_ad_hoc_pattern_recognizer_context_raises_confidence():

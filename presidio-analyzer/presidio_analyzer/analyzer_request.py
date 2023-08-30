@@ -1,9 +1,12 @@
-from typing import Dict
+from pydantic import BaseModel, validator
+from typing import Any, Dict, List, Optional
 
 from presidio_analyzer import PatternRecognizer
 
+def create_recognizers(raw: str) -> List[PatternRecognizer]:
+    return [ PatternRecognizer.from_dict(rec) for rec in raw ]
 
-class AnalyzerRequest:
+class AnalyzerRequest(BaseModel):
     """
     Analyzer request data.
 
@@ -20,17 +23,12 @@ class AnalyzerRequest:
         returned as part of the response
     """
 
-    def __init__(self, req_data: Dict):
-        self.text = req_data.get("text")
-        self.language = req_data.get("language")
-        self.entities = req_data.get("entities")
-        self.correlation_id = req_data.get("correlation_id")
-        self.score_threshold = req_data.get("score_threshold")
-        self.return_decision_process = req_data.get("return_decision_process")
-        ad_hoc_recognizers = req_data.get("ad_hoc_recognizers")
-        self.ad_hoc_recognizers = []
-        if ad_hoc_recognizers:
-            self.ad_hoc_recognizers = [
-                PatternRecognizer.from_dict(rec) for rec in ad_hoc_recognizers
-            ]
-        self.context = req_data.get("context")
+    text: str
+    language: str
+    entities: Optional[List[str]] = None
+    correlation_id: Optional[str] = None
+    score_threshold: Optional[float] = None
+    return_decision_process: Optional[bool] = None
+    ad_hoc_recognizers: Optional[List[Any]] = None
+    _transform_recognizers = validator('ad_hoc_recognizers', pre=True, allow_reuse=True)(create_recognizers)
+    context: Optional[List[str]] = None
