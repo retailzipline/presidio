@@ -125,7 +125,8 @@ class Server:
             return jsonify(error=e.description), e.code
 
 
+server = Server()
+server_app = server.app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", DEFAULT_PORT))
-    server = Server()
-    server.app.run(host="0.0.0.0", port=port)
+    server_app.run(host="0.0.0.0", port=port)
