@@ -5,12 +5,14 @@ name = "pypi"
 
 [packages]
 spacy = ">=3.4.4,<4.0.0"
+en-core-web-lg = {file = "https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.6.0/en_core_web_lg-3.6.0-py3-none-any.whl"}
 regex = "*"
 tldextract = "*"
 flask = ">=1.1"
 pyyaml = "*"
 phonenumbers = ">=8.12,<9.0.0"
 typing-extensions = "*"
+gunicorn = "*"
 
 [dev-packages]
 pytest = "*"
